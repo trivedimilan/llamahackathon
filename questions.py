@@ -1,5 +1,12 @@
 import csv
 import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  
+
+API_KEY = os.getenv("API_KEY")
+
 def get_last_30_rows(filepath):
     with open(filepath, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
@@ -11,7 +18,7 @@ def summarize_rows(rows_str):
             url="https://api.llama.com/v1/chat/completions", 
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer LLM|1267609331619212|6_agNYgCUQ1-hXFdwccaolGwDFM"
+                "Authorization": f"Bearer {API_KEY}"
             },
             json={
                 "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -40,7 +47,7 @@ def ask_question(summary, question):
         url="https://api.llama.com/v1/chat/completions", 
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer LLM|1267609331619212|6_agNYgCUQ1-hXFdwccaolGwDFM"
+            "Authorization": f"Bearer {API_KEY}"
         },
         json={
             "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -58,8 +65,15 @@ if __name__ == "__main__":
     rows = get_last_30_rows('/Users/milantrivedi/llamahackathon/responses.txt')
     rows_str = " ".join(row[0] for row in rows)
     summary = summarize_rows(rows_str)
-    answer = ask_question(summary, 'What kind of architecture is the background inspired by?')
-    print(answer)
+
+    print("Ask a question (press Ctrl+C to exit):")
+    try:
+        while True:
+            question = input("> ")
+            answer = ask_question(summary, question)
+            print(answer)
+    except KeyboardInterrupt:
+        print("\nExiting. Goodbye!")
     
 
 
