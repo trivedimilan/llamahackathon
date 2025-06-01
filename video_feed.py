@@ -6,10 +6,11 @@ import base64
 # import threading
 from concurrent.futures import ThreadPoolExecutor
 import time
-from skimage.metrics import structural_similarity as ssim
+import csv
 
 executor = ThreadPoolExecutor(max_workers=1000)
-MAX_DURATION = .5  # seconds
+MAX_DURATION = .5
+
 
 def open_camera_display():
     # Initialize the camera
@@ -33,11 +34,6 @@ def open_camera_display():
             print("Error: Can't receive frame. Exiting...")
             break
         
-        #skip if frame is mostly similar to last frame
-        if is_similar_frame(frame, last_frame):
-            last_frame = frame
-            continue
-        
         #every ten frames perfrom calculation
         current_time = time.time()
         
@@ -51,43 +47,13 @@ def open_camera_display():
         cv2.imshow('Camera Feed', frame)
         
         # Break the loop when 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
-        last_frame = frame
         
     # When everything is done, release the capture and close windows
     cap.release()
     cv2.destroyAllWindows()
-
-def is_similar_frame(frame1, frame2, threshold=0.75):
-    """
-    Returns True if two frames are mostly similar.
-    Uses SSIM (Structural Similarity Index) if available, 
-    else falls back to simple pixel difference ratio.
-    """
-
-    if type(frame1) != "<class 'numpy.ndarray'>" or type(frame2) != "<class 'numpy.ndarray'>":
-        return False
-    # Resize for faster comparison
-    small1 = cv2.resize(frame1, (64, 64))
-    small2 = cv2.resize(frame2, (64, 64))
-
-    # Convert to grayscale
-    gray1 = cv2.cvtColor(small1, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(small2, cv2.COLOR_BGR2GRAY)
-
-    # Option 1: Use SSIM (structural similarity) if available
-    try:
-        score, _ = ssim(gray1, gray2, full=True)
-        return score >= threshold
-    except ImportError:
-        # Option 2: Fallback to basic difference percentage
-        diff = cv2.absdiff(gray1, gray2)
-        non_zero_count = np.count_nonzero(diff)
-        total_pixels = diff.size
-        similarity = 1 - (non_zero_count / total_pixels)
-        return similarity >= threshold
 
 def process_frame(frame, start_time):
     while True:
@@ -106,13 +72,10 @@ def process_frame(frame, start_time):
             json={
                 "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
                 "messages": [
+                    {"role": "system", "content": "You are a precise video frame analyzer. You're job is to analyze all parts of the video frame, including the people, objects, items in the background, etc. Please answer a detailed response in 2 or more sentences. Please do not put a newline at the end of the response."},
                     {
                         "role": "user",
                         "content": [
-                            {
-                                "type": "text",
-                                "text": "What is going on in this picture frame in 30-40 words. Please make sure you are at least '99%' confident in your answer. Do not write the confidence score",
-                            },
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -125,8 +88,18 @@ def process_frame(frame, start_time):
             }
         )
 
-        print(response.json()['completion_message']['content']['text'])
+        f =  open("responses.txt", "a", encoding="utf-8", buffering=1)
 
+        response_text = response.json()['completion_message']['content']['text'];
+
+        with open("responses.txt", "a", newline='', encoding="utf-8") as txtfile:
+            writer = csv.writer(txtfile)
+            writer.writerow([response_text])  # Optional tim
+
+        
+
+
+        
 
 if __name__ == "__main__":
     open_camera_display()
