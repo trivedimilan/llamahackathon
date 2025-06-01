@@ -2,16 +2,20 @@ import csv
 import requests
 from dotenv import load_dotenv
 import os
+import sys
 
 load_dotenv()  
 
 API_KEY = os.getenv("API_KEY")
 
-def get_last_30_rows(filepath):
+MAX_WINDOW = 6000 #set max window to 30 min of footage
+
+def get_context(filepath, time_frame):
     with open(filepath, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
         rows = list(reader)
-        return rows[-30:]  # Return last 30 rows
+        window = min(len(rows), MAX_WINDOW, time_frame)
+        return rows[-window:]
     
 def summarize_rows(rows_str):
     response = requests.post(
@@ -62,7 +66,11 @@ def ask_question(summary, question):
 
 
 if __name__ == "__main__":
-    rows = get_last_30_rows('/Users/milantrivedi/llamahackathon/responses.txt')
+    time_frame = 30
+    if len(sys.argv) > 1:
+        timesframe = sys.argv[1] * 3
+
+    rows = get_context('/Users/milantrivedi/llamahackathon/responses.txt', time_frame)
     rows_str = " ".join(row[0] for row in rows)
     summary = summarize_rows(rows_str)
 

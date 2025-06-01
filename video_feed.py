@@ -15,7 +15,6 @@ MAX_DURATION = .5
 
 def open_camera_display():
     # Initialize the camera
-    # 0 represents the default camera (usually the built-in webcam)
     cap = cv2.VideoCapture(0)
     
     # Check if the camera opened successfully
@@ -35,12 +34,9 @@ def open_camera_display():
                 print("Error: Can't receive frame. Exiting...")
                 break
             
-            #every ten frames perfrom calculation
             current_time = time.time()
-            
-            # If one second has passed since last processing
+            # If .3 second has passed since last processing
             if current_time - last_time > 0.3:
-                # Do your processing here (e.g., process_frame)
                 executor.submit(process_frame, frame.copy(), current_time)
                 last_time = current_time
         
@@ -93,7 +89,7 @@ def process_frame(frame, start_time):
 
         with open("responses.txt", "a", newline='', encoding="utf-8") as txtfile:
             writer = csv.writer(txtfile)
-            writer.writerow([response_text])  # Optional tim
+            writer.writerow([f"{start_time} {response_text}"])
 
 
 if __name__ == "__main__":
